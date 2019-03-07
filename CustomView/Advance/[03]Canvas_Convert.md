@@ -429,8 +429,67 @@ public int saveLayerAlpha (float left, float top, float right, float bottom, int
 ```
 这种方式也是最简单和最容易理解的使用方法。
 
+##### 具体示例
+canvas.save();与canvas.restore();一般结合使用，.save()函数在前，.restore()函数在后，用来保证在这两个函数之间所做的操作不会对原来在canvas上所画图形产生影响。比如下面这张图：
+<img src="https://note.youdao.com/yws/api/personal/file/WEB8e1a3d9a796c1e7bd9917ec98deefa0a?method=download&shareKey=647dccfc70a509781ffbdb4efaa26781" width="300" />
+蓝色方块里面有三张图，两张正常画，一张倾斜45度角画
+首先，你可以这样画：先画左上角和左下角的两个图，然后将画布倾斜45度角，再去画第三张图，这样是没问题的，代码如下：
 
+```@Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        //第一张
+        canvas.drawBitmap(bitmap, 0 , 0 , paint);
+        //第二张
+        canvas.drawBitmap(bitmap, 0 , getHeight()- bitmap.getHeight() , paint);
+        //旋转45
+        canvas.rotate(45 , getWidth()/2 , getHeight()/2);
+        //第三张
+        canvas.drawBitmap(bitmap, getWidth()/2- bitmap.getWidth()/2 , getHeight()/2- bitmap.getHeight()/2 , paint);
+   }
+``` 
+如果你要是按这样的顺序画：第一张–>倾斜45度的那一张–>第三张
 
+```@Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        //第一张
+        canvas.drawBitmap(bitmap, 0 , 0 , paint);
+        //旋转45
+        canvas.rotate(45 , getWidth()/2 , getHeight()/2);
+        //第二张
+        canvas.drawBitmap(bitmap, getWidth()/2- bitmap.getWidth()/2 , getHeight()/2- bitmap.getHeight()/2 , paint);
+        //第三张
+        canvas.drawBitmap(bitmap, 0 , getHeight()- bitmap.getHeight() , paint);
+    }
+``` 
+那么结果就变成了这样：
+<img src="https://note.youdao.com/yws/api/personal/file/WEB6083b567c2006b1282bb3374be586a75?method=download&shareKey=ce1577b1ad0601a0d74dedac2a73d6a7" width="300" />
+wtf！第三张图为什么出去了，而且它也没有老实的呆在左下角！
+我们来看上面的代码：
+第一行：画第一张左上角的图
+第二行：旋转画布45度
+第三行：画第二张倾斜的图
+第四行：画第三张左下角的图
+看起来是没有什么问题，但是第二行代码将canvas旋转了45度，所以以后再往canvas上画图的时候都是在这个旋转45度的基础上进行的，也就是说整个坐标系旋转了45度，它已经不再是原来水平竖直的坐标系了，所以第三次画的图会出现偏移。那么如何解决？如下：
+
+``` @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        //第一张
+        canvas.drawBitmap(bitmap, 0 , 0 , paint);
+        //保存画布状态
+        canvas.save();
+        //旋转45
+        canvas.rotate(45 , getWidth()/2 , getHeight()/2);
+        //第二张
+        canvas.drawBitmap(bitmap, getWidth()/2- bitmap.getWidth()/2 , getHeight()/2- bitmap.getHeight()/2 , paint);
+        //取出原来保存的状态
+        canvas.restore();
+        //第三张
+        canvas.drawBitmap(bitmap, 0 , getHeight()- bitmap.getHeight() , paint);
+    }
+```
 ******
 ## 三.总结
 
